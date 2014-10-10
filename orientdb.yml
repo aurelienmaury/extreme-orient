@@ -1,0 +1,37 @@
+---
+- name: CHECK - is python-apt present ?
+  shell: /usr/bin/dpkg -s python-apt
+  ignore_errors: yes
+  register: pythonAptPresence
+
+- name: install python-apt (update apt before installation)
+  command: /usr/bin/apt-get update -y
+  when: pythonAptPresence|failed
+
+- name: install python-apt
+  command: /usr/bin/apt-get install python-apt -y
+  when: pythonAptPresence|failed
+
+- name: sudo present
+  apt:
+    pkg=sudo
+    state=present
+    update-cache=yes
+    cache_valid_time=3600
+
+- name: Group is present
+  group:
+    name="{{ orient.user }}"
+    gid=4200
+    state=present
+
+- name: User is present
+  user:
+    name="{{ orient.user }}"
+    uid=4200
+    groups="{{ orient.user }},sudo"
+    generate_ssh_key=yes
+    state=present
+
+- name: Change password for orientdb
+  shell: usermod -p $(echo '{{ orient.randomPasswordSeed }}' | openssl passwd -1 -stdin) {{ orient.user }}
